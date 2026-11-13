@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seberapa Yusril Kamu? - Ultimate Quiz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Orbitron & Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at 50% 10%, #170936, #090417, #020108);
+            min-height: 100vh;
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Dark Neon Glassmorphism Styling */
+        .glass-card {
+            background: rgba(13, 9, 31, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid rgba(168, 85, 247, 0.45);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 35px rgba(168, 85, 247, 0.25);
+        }
+
+        .neon-text-purple {
+            text-shadow: 0 0 12px rgba(168, 85, 247, 0.9), 0 0 25px rgba(168, 85, 247, 0.6);
+        }
+
+        .neon-text-cyan {
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.9), 0 0 25px rgba(6, 182, 212, 0.6);
+        }
+
+        .neon-text-gold {
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.9), 0 0 25px rgba(245, 158, 11, 0.6);
+        }
+
+        /* Custom Keyframe Animations */
+        @keyframes floatPulse {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
+        }
+        .animate-float {
+            animation: floatPulse 3s ease-in-out infinite;
+        }
+
+        @keyframes cardShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-12px) rotate(-1deg); }
+            40%, 80% { transform: translateX(12px) rotate(1deg); }
+        }
+        .animate-shake {
+            animation: cardShake 0.4s ease-in-out;
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(15px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop {
+            animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Cyber Buttons */
+        .btn-neon-purple {
+            background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+            transition: all 0.25s ease;
+        }
+        .btn-neon-purple:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.8);
+        }
+
+        .btn-neon-cyan {
+            background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+            transition: all 0.25s ease;
+        }
+        .btn-neon-cyan:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.8);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(13, 9, 31, 0.9);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #a855f7;
+            border-radius: 9999px;
+        }
+    </style>
+
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global dynamic variables fallback
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'seberapa-yusril-kamu';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' 
+            ? JSON.parse(__firebase_config) 
+            : {
+                apiKey: "AIzaSyDemoKeyOnlyForPreviewMode123456",
+                authDomain: "demo-app.firebaseapp.com",
+                projectId: "demo-app",
+                storageBucket: "demo-app.appspot.com",
+                messagingSenderId: "1234567890",
+                appId: "1:1234567890:web:abcdef123456"
+            };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let unsubscribeLeaderboard = null;
+
+        window.quizFirebase = {
+            initAuth: async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (err) {
+                    console.warn("Auth initialization fallback triggered:", err);
+                }
+            },
+
+            saveResult: async (resultData) => {
+                if (!auth.currentUser) {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (e) {
+                        console.error("Auth error during save:", e);
+                    }
+                }
+                const uid = auth.currentUser ? auth.currentUser.uid : 'anon-' + Date.now();
+                const docId = `${Date.now()}_${uid.substring(0, 6)}`;
+                
+                // Firestore Path Mandatory Rule: /artifacts/{appId}/public/data/{collectionName}
+                const resultDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'quiz_results', docId);
+
+                try {
+                    await setDoc(resultDocRef, {
+                        ...resultData,
+                        userId: uid,
+                        timestamp: new Date().toISOString()
+                    });
+                    console.log("Hasil kuis Yusril berhasil disimpan ke database!");
+                } catch (error) {
+                    console.error("Gagal menyimpan hasil kuis:", error);
+                }
+            },
+
+            listenToLeaderboard: (callback) => {
+                if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+
+                const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'quiz_results');
+
+                unsubscribeLeaderboard = onSnapshot(colRef, (snapshot) => {
+                    const dataList = [];
+                    snapshot.forEach(doc => {
+                        dataList.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    // In-memory sort by score descending then by timestamp descending
+                    dataList.sort((a, b) => {
+                        if (b.score !== a.score) return b.score - a.score;
+                        return new Date(b.timestamp) - new Date(a.timestamp);
+                    });
+                    
+                    callback(dataList);
+                }, (error) => {
+                    console.error("Leaderboard listener error:", error);
+                    callback([]);
+                });
+            }
+        };
+
+        window.quizFirebase.initAuth();
+    </script>
+</head>
+<body class="flex items-center justify-center p-3 sm:p-6 select-none relative min-h-screen">
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="w-full max-w-2xl relative z-10 my-4">
+
+        <!-- HEADER BANNER -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-5 text-center sm:text-left">
+            <div>
+                <span class="bg-purple-500/20 border border-purple-400/50 text-purple-300 text-[10px] sm:text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest inline-block mb-1 shadow-md font-cyber">
+                    ⚡ HIGH-DIFFICULTY RANDOMIZED QUIZ ⚡
+                </span>
+                <h1 class="text-xl sm:text-3xl font-black tracking-tight text-white leading-tight font-cyber">
+                    SEBERAPA <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-cyan-400 neon-text-purple">YUSRIL</span> KAMU? 😎
+                </h1>
+            </div>
+
+            <!-- TOGGLE DASHBOARD BUTTON -->
+            <button onclick="toggleViewDashboard()" id="btn-toggle-view"
+                class="px-4 py-2 bg-slate-900/90 border-2 border-cyan-400/60 hover:border-cyan-400 text-cyan-300 rounded-xl text-xs font-bold transition-all shadow-lg flex items-center gap-2 font-cyber">
+                <i class="fa-solid fa-trophy text-sm text-cyan-400"></i>
+                <span id="text-toggle-view">📊 Dashboard Yusril</span>
+            </button>
+        </div>
+
+        <!-- MAIN GLASS CARD -->
+        <div id="quiz-card" class="glass-card rounded-3xl p-5 sm:p-8 relative overflow-hidden transition-all duration-300">
+
+            <!-- LOCK STATUS BAR -->
+            <div id="lock-status-bar" class="flex items-center justify-between bg-purple-950/80 border border-purple-500/40 rounded-xl px-4 py-2.5 mb-6 shadow-inner">
+                <div class="flex items-center gap-2 text-xs sm:text-sm font-semibold text-purple-200">
+                    <i id="lock-icon" class="fa-solid fa-lock text-yellow-400 animate-bounce"></i>
+                    <span id="lock-text">Status: <span class="text-yellow-400 font-bold">Kuis Terkunci</span> (Selesaikan 20 Soal Acak)</span>
+                </div>
+                <button onclick="attemptExit()" class="text-xs text-gray-400 hover:text-rose-400 transition-colors underline flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                </button>
+            </div>
+
+            <!-- 1. WELCOME SCREEN -->
+            <div id="screen-welcome" class="space-y-6 text-center animate-pop">
+                <div class="relative w-28 h-28 mx-auto">
+                    <div class="absolute inset-0 bg-purple-500/30 rounded-full blur-2xl animate-pulse"></div>
+                    <div class="relative w-28 h-28 bg-slate-950 border-4 border-purple-500 rounded-full flex items-center justify-center text-5xl shadow-2xl animate-float">
+                        🧠
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h2 class="text-xl sm:text-2xl font-black text-white font-cyber">Uji Pengetahuan Level Tinggi Tentang Yusril!</h2>
+                    <p class="text-gray-300 text-xs sm:text-sm leading-relaxed max-w-md mx-auto">
+                        20 Pertanyaan tersulit, penuh trik, dan diacak penuh menggunakan <span class="text-cyan-300 font-bold">Fisher-Yates Shuffle</span>! Tentang **Yusril**: Sang maestro martabak, otak jenius level NASA, dan pesona ganteng paling tiada tanding!
+                    </p>
+                </div>
+
+                <form onsubmit="handleStartQuiz(event)" class="space-y-4 max-w-md mx-auto pt-2">
+                    <div class="relative">
+                        <i class="fa-solid fa-user-gear absolute left-4 top-1/2 -translate-y-1/2 text-purple-400 text-lg"></i>
+                        <input type="text" id="input-username" required
+                            class="w-full pl-12 pr-4 py-3.5 bg-slate-950/90 border-2 border-purple-500/60 focus:border-purple-400 focus:ring-2 focus:ring-purple-400/40 rounded-xl text-white placeholder-gray-400 text-sm font-medium outline-none transition-all"
+                            placeholder="Masukkan Nama Lengkap / Panggilan..." autocomplete="off">
+                    </div>
+
+                    <button type="submit" 
+                        class="btn-neon-purple w-full py-4 font-black rounded-xl shadow-xl text-sm sm:text-base tracking-wider uppercase flex items-center justify-center gap-2 font-cyber">
+                        <span>MULAI KUIS 20 SOAL ACAK!</span> <i class="fa-solid fa-shuffle text-yellow-300"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- 2. QUIZ SCREEN -->
+            <div id="screen-quiz" class="hidden space-y-6">
+                <!-- PROGRESS & USER INFO -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center text-xs sm:text-sm font-bold">
+                        <span class="text-cyan-300 flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-ninja text-purple-400"></i> <span id="display-user-name"></span>
+                        </span>
+                        <span class="text-purple-300 bg-purple-500/20 px-3 py-1 rounded-full border border-purple-400/40 font-cyber">
+                            Soal <span id="idx-current">1</span> dari <span id="idx-total">20</span>
+                        </span>
+                    </div>
+
+                    <!-- PROGRESS BAR -->
+                    <div class="w-full bg-slate-950 h-3.5 rounded-full p-0.5 border border-purple-500/30">
+                        <div id="quiz-progress-bar" class="bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-400 h-full rounded-full w-0 transition-all duration-500 shadow-sm"></div>
+                    </div>
+                </div>
+
+                <!-- QUESTION CONTENT -->
+                <div id="question-box" class="space-y-4 animate-pop">
+                    <div class="bg-slate-950/90 p-4 sm:p-5 rounded-2xl border border-purple-500/40 min-h-[95px] flex items-center shadow-md">
+                        <h3 id="question-title" class="text-sm sm:text-base font-bold text-white leading-relaxed">
+                            <!-- Pertanyaan dimuat di sini -->
+                        </h3>
+                    </div>
+
+                    <!-- OPTIONS (SHUFFLED) -->
+                    <div id="options-container" class="grid grid-cols-1 gap-3">
+                        <!-- Opsi Jawaban dimuat di sini -->
+                    </div>
+                </div>
+
+                <!-- FOOTER / NEXT BUTTON -->
+                <div class="flex justify-between items-center pt-2">
+                    <span id="quiz-hint" class="text-xs italic text-yellow-300 font-medium max-w-[65%] leading-tight">
+                        Pilih jawaban terbaik dengan cermat!
+                    </span>
+                    <button id="btn-next-question" onclick="handleNextQuestion()" disabled
+                        class="px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 text-white font-black text-xs sm:text-sm rounded-xl transition-all opacity-40 cursor-not-allowed flex items-center gap-2 shadow-lg font-cyber">
+                        <span>Lanjut Soal</span> <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. RESULT SCREEN -->
+            <div id="screen-result" class="hidden space-y-6 animate-pop text-center">
+                <div class="inline-block relative">
+                    <div class="absolute inset-0 bg-purple-500 rounded-full blur-2xl opacity-60 animate-pulse"></div>
+                    <div class="relative w-20 h-20 bg-slate-950 border-4 border-purple-500 rounded-full flex items-center justify-center text-4xl mx-auto shadow-2xl">
+                        🏆
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <span class="text-xs font-black text-purple-400 tracking-widest uppercase font-cyber">EVALUASI AKHIR YUSRIL</span>
+                    <h2 class="text-xl sm:text-2xl font-black text-white font-cyber">
+                        KUIS SELESAI & RESULT TERSIMPAN! 🎉
+                    </h2>
+                    <p class="text-xs sm:text-sm text-gray-300">
+                        Selamat <span id="res-name" class="text-cyan-300 font-bold"></span>! Data jawabanmu sudah otomatis dicatat di database Yusril!
+                    </p>
+                </div>
+
+                <!-- SCORE BOARD -->
+                <div class="bg-gradient-to-br from-slate-950/95 to-purple-950/95 p-5 rounded-2xl border border-purple-500/50 grid grid-cols-2 gap-4 text-center shadow-lg">
+                    <div class="border-r border-purple-500/30 pr-2">
+                        <p class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Skor Total Yusril</p>
+                        <p id="res-score-number" class="text-3xl sm:text-4xl font-black text-yellow-400 mt-1 font-cyber">100</p>
+                    </div>
+                    <div class="pl-2">
+                        <p class="text-[10px] sm:text-xs font-bold text-gray-400 uppercase">Gelar Kemiripan</p>
+                        <p id="res-badge-title" class="text-xs sm:text-sm font-black text-cyan-300 mt-3 uppercase font-cyber">Pakar Utama Yusril 👑</p>
+                    </div>
+                </div>
+
+                <!-- UNLOCKED EXIT ACTIONS -->
+                <div class="pt-2 space-y-3">
+                    <button onclick="toggleViewDashboard()" 
+                        class="btn-neon-cyan w-full py-4 font-black rounded-xl shadow-xl text-sm sm:text-base tracking-wider uppercase flex items-center justify-center gap-2 font-cyber">
+                        <i class="fa-solid fa-trophy text-lg"></i>
+                        <span>LIHAT LEADERBOARD PENGISI KUIS!</span>
+                    </button>
+                    <button onclick="handleFinishAndQuit()" 
+                        class="w-full py-3 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500 text-emerald-200 font-bold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-door-open"></i>
+                        <span>SELESAI & KELUAR (KUNCI TERBUKA)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4. DASHBOARD / LEADERBOARD SCREEN -->
+            <div id="screen-dashboard" class="hidden space-y-5 animate-pop">
+                <div class="flex items-center justify-between border-b border-purple-500/30 pb-3">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-black text-white font-cyber flex items-center gap-2">
+                            <i class="fa-solid fa-database text-cyan-400"></i> REKAP PENGISI KUIS REALTIME
+                        </h3>
+                        <p class="text-xs text-gray-400">Daftar pengguna yang telah menyelesaikan kuis Yusril</p>
+                    </div>
+                    <span id="dashboard-count" class="bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-xs font-bold px-3 py-1 rounded-full font-cyber">
+                        0 Pengisi
+                    </span>
+                </div>
+
+                <!-- SEARCH FILTER -->
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400 text-xs"></i>
+                    <input type="text" id="input-search-leaderboard" oninput="filterLeaderboard()"
+                        class="w-full pl-10 pr-4 py-2.5 bg-slate-950/90 border border-purple-500/40 focus:border-purple-400 rounded-xl text-xs text-white placeholder-gray-400 outline-none"
+                        placeholder="Cari nama pengisi kuis...">
+                </div>
+
+                <!-- LEADERBOARD LIST CONTAINER -->
+                <div id="leaderboard-list" class="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                    <div class="text-center py-8 text-gray-400 text-xs font-medium">
+                        <i class="fa-solid fa-spinner animate-spin text-purple-400 text-xl mb-2"></i>
+                        <p>Memuat data pengisi kuis dari database Firestore...</p>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button onclick="toggleViewDashboard()" 
+                        class="w-full py-3 bg-slate-900 border border-purple-500/50 hover:border-purple-400 text-purple-300 font-bold rounded-xl text-xs sm:text-sm transition-all flex items-center justify-center gap-2 font-cyber">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>KEMBALI KE KUIS</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- LOCK MODAL OVERLAY -->
+    <div id="modal-lock-alert" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-card bg-slate-950 border-2 border-purple-500 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center space-y-5 animate-pop shadow-2xl">
+            <div class="w-16 h-16 bg-purple-500/20 border-2 border-purple-500 rounded-full flex items-center justify-center text-3xl mx-auto text-purple-400 animate-bounce">
+                🔒⚡
+            </div>
+            <div class="space-y-2">
+                <h3 class="text-lg sm:text-xl font-black text-purple-300 font-cyber">EITS JANGAN KABUR DULU! 😎</h3>
+                <p class="text-xs sm:text-sm text-gray-200 leading-relaxed font-medium">
+                    Selesaikan dulu 20 soal tantangan Yusril ini! Hasil akhirmu akan langsung tercatat di leaderboard! 🥞✨
+                </p>
+            </div>
+            <button onclick="closeLockModal()" 
+                class="btn-neon-purple w-full py-3.5 font-black rounded-xl text-xs sm:text-sm shadow-md font-cyber uppercase">
+                Siap, Lanjutkan Jawab! 💪
+            </button>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // 20 HIGH-DIFFICULTY & TRICKY QUESTIONS ABOUT YUSRIL (ZERO MENTION OF "TINGGI")
+        const masterQuizQuestions = [
+            {
+                question: "Berapakah kadar kerenyahan kulit luar martabak telur ideal yang sanggup memenuhi standar kualitas selera Yusril?",
+                options: [
+                    "Tingkat kerenyahan presisi 99,8% dengan aroma rempah gokil lezat 🥞",
+                    "Gosong hitam legam dengan rasa pahit",
+                    "Lembek basah tanpa bumbu apapun",
+                    "Kering keras bagaikan batu bata"
+                ],
+                correctText: "Tingkat kerenyahan presisi 99,8% dengan aroma rempah gokil lezat 🥞",
+                fact: "Standar kuliner martabak Yusril hanya menerima kerenyahan presisi sempurna!"
+            },
+            {
+                question: "Analisis teori kecerdasan Yusril: Jika dipertemukan dengan masalah logika tersulit, pendekatan apa yang digunakan otaknya?",
+                options: [
+                    "Pemikiran taktis melintasi algoritma jenius spek NASA 🧠",
+                    "Menebak secara sembarangan tanpa membaca soal",
+                    "Menunggu bantuan orang lain tanpa bertindak",
+                    "Panik lalu menghentikan semua operasi pikiran"
+                ],
+                correctText: "Pemikiran taktis melintasi algoritma jenius spek NASA 🧠",
+                fact: "Kecerdasan Yusril sanggup memecahkan algoritma paling rumit sekalipun!"
+            },
+            {
+                question: "Secara statistik psikologi visual, apakah efek utama dari senyuman karismatik Yusril bagi lingkungan sekitarnya?",
+                options: [
+                    "Meningkatkan aura positif & semangat suasana hingga 1000% 😎",
+                    "Bikin suasana sekitar mendadak menjadi tegang",
+                    "Tidak memberikan efek visual apapun",
+                    "Membuat orang-orang malah mengantuk"
+                ],
+                correctText: "Meningkatkan aura positif & semangat suasana hingga 1000% 😎",
+                fact: "Pesona ketampanan & senyuman Yusril adalah booster energi utama!"
+            },
+            {
+                question: "Kombinasi rahasia martabak manis favorit Yusril yang dianggap sebagai Mahakarya Kuliner adalah...",
+                options: [
+                    "Lapis keju tebal melimpah, cokelat lumer, & mentega wangi premium 🥞✨",
+                    "Polos tanpa topping sama sekali",
+                    "Topping garam dapur padat",
+                    "Hanya diolesi mentega tipis dingin"
+                ],
+                correctText: "Lapis keju tebal melimpah, cokelat lumer, & mentega wangi premium 🥞✨",
+                fact: "Kombinasi keju lumer & cokelat melimpah adalah favorit mutlak Yusril!"
+            },
+            {
+                question: "Ketika Yusril memimpin diskusi kelompok, metode kepemimpinan apakah yang paling menonjol?",
+                options: [
+                    "Sangat solutif, berwawasan luas, cerdas, & mencairkan suasana! 👑",
+                    "Hanya diam menyaksikan tanpa ide",
+                    "Dominan tapi tanpa memberikan solusi nyata",
+                    "Malah sibuk mengobrol topik lain"
+                ],
+                correctText: "Sangat solutif, berwawasan luas, cerdas, & mencairkan suasana! 👑",
+                fact: "Yusril adalah tipe pemimpin idaman yang cerdas dan komunikatif!"
+            },
+            {
+                question: "Berdasarkan Hukum Fisika 'Kece Yusril', apa yang terjadi jika Yusril lewat di depan cermin?",
+                options: [
+                    "Cermin langsung memancarkan aura ketampanan maksimal tiada tanding! 🪞✨",
+                    "Cermin menjadi buram dan gelap",
+                    "Tidak ada pantulan cahaya sama sekali",
+                    "Cermin mendadak bergetar hebat"
+                ],
+                correctText: "Cermin langsung memancarkan aura ketampanan maksimal tiada tanding! 🪞✨",
+                fact: "Cermin pun sepakat kalau Yusril itu gantengnya maksimal!"
+            },
+            {
+                question: "Berapa lama waktu yang dibutuhkan otak jenius Yusril untuk menguasai materi ilmu baru?",
+                options: [
+                    "Hitungan detik karena daya tangkap otaknya super cepat & tajam! ⚡",
+                    "Butuh waktu bertahun-tahun tanpa hasil",
+                    "Harus dijelaskan hingga berulang ratusan kali",
+                    "Tidak pernah paham sama sekali"
+                ],
+                correctText: "Hitungan detik karena daya tangkap otaknya super cepat & tajam! ⚡",
+                fact: "Daya tangkap otak Yusril di atas rata-rata manusia biasa!"
+            },
+            {
+                question: "Apa gaya khas seorang Yusril ketika berhasil memenangkan tantangan kuis sulit?",
+                options: [
+                    "Tersenyum santai nan karismatik sambil menikmati porsi martabak! 😎🥞",
+                    "Seolah-olah tidak terjadi apa-apa",
+                    "Sombong berlebihan hingga mengganggu",
+                    "Kaget seperti tidak percaya diri"
+                ],
+                correctText: "Tersenyum santai nan karismatik sambil menikmati porsi martabak! 😎🥞",
+                fact: "Sikap tenang & santai adalah gaya khas kemenangan Yusril!"
+            },
+            {
+                question: "Saat situasi nongkrong mulai sepi dan membosankan, aksi gokil apakah yang bakal dilakukan Yusril?",
+                options: [
+                    "Lemparkan lelucon cerdas & ajakan kulineran martabak hangat! 🔥",
+                    "Langsung pamit pulang sendirian",
+                    "Main HP tanpa memedulikan kawan",
+                    "Tidur lelap di sofa"
+                ],
+                correctText: "Lemparkan lelucon cerdas & ajakan kulineran martabak hangat! 🔥",
+                fact: "Yusril selalu punya ide segar buat menghidupkan suasana!"
+            },
+            {
+                question: "Jika kecerdasan Yusril dikonversikan menjadi daya listrik, maka daya tersebut sanggup untuk...",
+                options: [
+                    "Menerangi seluruh kota dengan cahaya ide-ide kreatif & jenius! 💡",
+                    "Hanya cukup meredupkan satu lampu kecil",
+                    "Membuat konslet aliran listrik",
+                    "Tidak memiliki energi daya sama sekali"
+                ],
+                correctText: "Menerangi seluruh kota dengan cahaya ide-ide kreatif & jenius! 💡",
+                fact: "Ide-ide kreatif Yusril tak pernah habis untuk dieksplorasi!"
+            },
+            {
+                question: "Apa definisi 'Ganteng Maksimal' menurut standar penilaian otentik sosok Yusril?",
+                options: [
+                    "Perpaduan wajah rupawan, otak cerdas, serta sikap ramah & baik hati 👑",
+                    "Cuma mengandalkan penampilan tanpa isi otak",
+                    "Hanya terlihat rapi di foto saja",
+                    "Penampilan biasa saja tanpa keunggulan"
+                ],
+                correctText: "Perpaduan wajah rupawan, otak cerdas, serta sikap ramah & baik hati 👑",
+                fact: "Ganteng versi Yusril adalah paket lengkap luar dan dalam!"
+            },
+            {
+                question: "Strategi apa yang dipakai Yusril saat berburu kuliner martabak terbaik di kota?",
+                options: [
+                    "Menganalisis rating adonan, ketebalan keju, & ulasan rasa secara presisi 🎯",
+                    "Membeli di sembarang tempat asal murah",
+                    "Menunggu kiriman gratis dari orang lain",
+                    "Membeli martabak yang sudah dingin lama"
+                ],
+                correctText: "Menganalisis rating adonan, ketebalan keju, & ulasan rasa secara presisi 🎯",
+                fact: "Yusril selalu memastikan kuliner yang dipilih berkualitas top!"
+            },
+            {
+                question: "Bagaimanakah respons emosional Yusril ketika dihadapkan pada kritik atau ujian berat?",
+                options: [
+                    "Menanggapinya dengan kepala dingin, bijak, cerdas, & makin dewasa 🧠",
+                    "Emosional dan marah-marah",
+                    "Langsung merasa putus asa",
+                    "Menghindar dari kenyataan"
+                ],
+                correctText: "Menanggapinya dengan kepala dingin, bijak, cerdas, & makin dewasa 🧠",
+                fact: "Kematangan berpikir Yusril selalu bikin kagum kawan-kawannya!"
+            },
+            {
+                question: "Seberapa tinggi tingkat loyalitas & kepedulian Yusril kepada kawan-kawan terdekatnya?",
+                options: [
+                    "Level maksimal! Selalu siap membantu & mendukung sahabatnya! 🤝✨",
+                    "Hanya peduli jika ada keuntungan pribadi",
+                    "Sering acuh tak acuh pada kawan",
+                    "Lupa nama kawan sendiri"
+                ],
+                correctText: "Level maksimal! Selalu siap membantu & mendukung sahabatnya! 🤝✨",
+                fact: "Loyalitas solidaritas Yusril kepada teman-temannya tidak perlu diragukan!"
+            },
+            {
+                question: "Jika Yusril menulis buku tentang petunjuk kehidupan, judul terbaik yang paling cocok adalah...",
+                options: [
+                    "'Seni Menjadi Ganteng, Jenius, & Penikmat Martabak Sejati' 📖🥞",
+                    "'Cara Tidur Seharian Tanpa Khawatir'",
+                    "'Panduan Menjadi Orang Biasa'",
+                    "'Rahasia Menghindari Diskusi'"
+                ],
+                correctText: "'Seni Menjadi Ganteng, Jenius, & Penikmat Martabak Sejati' 📖🥞",
+                fact: "Buku fiktif karya Yusril ini pasti langsung jadi Best Seller!"
+            },
+            {
+                question: "Apa elemen utama dalam aura kepribadian Yusril yang bikin orang gampang nyaman?",
+                options: [
+                    "Keramahan alami, selera humor cerdas, & pembawaan yang santai 😎",
+                    "Suka pamer kelebihan secara berlebihan",
+                    "Bicara terlalu kaku bagaikan robot",
+                    "Sering membuat kawan merasa canggung"
+                ],
+                correctText: "Keramahan alami, selera humor cerdas, & pembawaan yang santai 😎",
+                fact: "Sifat ramah dan humoris Yusril bikin siapa saja betah ngobrol!"
+            },
+            {
+                question: "Di antara pilihan berikut, manakah ritual wajib Yusril sebelum mengeksekusi tugas penting?",
+                options: [
+                    "Fokus penuh, berdoa, & memastikan energi otak terisi sempurna! ⚡",
+                    "Mengeluh berjam-jam terlebih dahulu",
+                    "Menunda pekerjaan hingga menit terakhir",
+                    "Mengarahkan tugas ke orang lain"
+                ],
+                correctText: "Fokus penuh, berdoa, & memastikan energi otak terisi sempurna! ⚡",
+                fact: "Yusril selalu mempersiapkan segala sesuatu dengan perencanaan matang!"
+            },
+            {
+                question: "Bagaimanakah performa Yusril saat harus menyelesaikan tugas secara cepat under-pressure?",
+                options: [
+                    "Tetap tenang bagaikan profesional & hasil tugas tetap sempurna! 🥇",
+                    "Hasil tugas menjadi tidak beraturan",
+                    "Mengalami pusing hebat lalu menyerah",
+                    "Membuat banyak kesalahan dasar"
+                ],
+                correctText: "Tetap tenang bagaikan profesional & hasil tugas tetap sempurna! 🥇",
+                fact: "Tekanan justru membuat performa kejeniusan Yusril semakin tajam!"
+            },
+            {
+                question: "Apa reaksi pertama Yusril jika melihat piring berisi martabak keju lezat di meja?",
+                options: [
+                    "Mata berbinar penuh kebahagiaan & siap menikmati setiap gigitannya! 🥞🤤",
+                    "Melihatnya dengan tatapan biasa saja",
+                    "Memindahkan piring ke tempat jauh",
+                    "Menanyakan kenapa tidak membeli makanan lain"
+                ],
+                correctText: "Mata berbinar penuh kebahagiaan & siap menikmati setiap gigitannya! 🥞🤤",
+                fact: "Martabak hangat adalah jalan pintas menuju kebahagiaan Yusril!"
+            },
+            {
+                question: "Kesimpulan akhir yang paling valid dan tidak sanggup diganggu gugat tentang Yusril adalah...",
+                options: [
+                    "Yusril adalah kombinasi langka: Ganteng, super pintar, gokil, & kawan terbaik! 👑🔥",
+                    "Yusril hanyalah penonton biasa",
+                    "Yusril adalah karakter fiktif",
+                    "Yusril adalah orang pemalu yang kurang bergaul"
+                ],
+                correctText: "Yusril adalah kombinasi langka: Ganteng, super pintar, gokil, & kawan terbaik! 👑🔥",
+                fact: "100% Valid! Yusril memang sosok serba bisa yang tiada duanya!"
+            }
+        ];
+
+        // STATE VARIABLES
+        let currentUsername = "";
+        let activeQuestions = [];
+        let currentIndex = 0;
+        let currentScore = 0;
+        let isQuizCompleted = false;
+        let isDashboardView = false;
+        let rawLeaderboardData = [];
+        let userAnswers = [];
+        let webAudioContext = null;
+
+        // DOM ELEMENTS
+        const screenWelcome = document.getElementById("screen-welcome");
+        const screenQuiz = document.getElementById("screen-quiz");
+        const screenResult = document.getElementById("screen-result");
+        const screenDashboard = document.getElementById("screen-dashboard");
+        const modalLockAlert = document.getElementById("modal-lock-alert");
+        const lockStatusBar = document.getElementById("lock-status-bar");
+        const lockIcon = document.getElementById("lock-icon");
+        const lockText = document.getElementById("lock-text");
+
+        const idxCurrent = document.getElementById("idx-current");
+        const idxTotal = document.getElementById("idx-total");
+        const quizProgressBar = document.getElementById("quiz-progress-bar");
+        const questionTitle = document.getElementById("question-title");
+        const optionsContainer = document.getElementById("options-container");
+        const btnNextQuestion = document.getElementById("btn-next-question");
+
+        // FISHER-YATES SHUFFLE ALGORITHM FOR COMPLETE RANDOMIZATION
+        function fisherYatesShuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // PREVENT LEAVING UNTIL 20 QUESTIONS ARE COMPLETED
+        window.addEventListener("beforeunload", (e) => {
+            if (!isQuizCompleted && currentUsername !== "") {
+                e.preventDefault();
+                e.returnValue = "Selesaikan dulu 20 soal tantangan Yusril ini! Hasil akhirmu akan tersimpan!";
+                return e.returnValue;
+            }
+        });
+
+        // WEB AUDIO SYNTHESIZER
+        function getAudioContext() {
+            if (!webAudioContext) {
+                webAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (webAudioContext.state === 'suspended') {
+                webAudioContext.resume();
+            }
+        }
+
+        function playSynthesizedSound(type) {
+            try {
+                getAudioContext();
+                if (!webAudioContext) return;
+
+                const osc = webAudioContext.createOscillator();
+                const gain = webAudioContext.createGain();
+                osc.connect(gain);
+                gain.connect(webAudioContext.destination);
+
+                const now = webAudioContext.currentTime;
+
+                if (type === "correct") {
+                    osc.type = "triangle";
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.22);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                } else if (type === "wrong") {
+                    osc.type = "sawtooth";
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(110, now + 0.22);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                } else if (type === "lock") {
+                    osc.type = "square";
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.setValueAtTime(90, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+                    osc.start(now);
+                    osc.stop(now + 0.25);
+                }
+            } catch (err) {
+                console.log("Audio synthesis suppressed");
+            }
+        }
+
+        // LOCK MODAL HANDLERS
+        function attemptExit() {
+            if (isQuizCompleted) {
+                handleFinishAndQuit();
+            } else {
+                playSynthesizedSound("lock");
+                modalLockAlert.classList.remove("hidden");
+            }
+        }
+
+        function closeLockModal() {
+            modalLockAlert.classList.add("hidden");
+        }
+
+        // START QUIZ LOGIC WITH FULL SHUFFLE
+        function handleStartQuiz(e) {
+            e.preventDefault();
+            const inputVal = document.getElementById("input-username").value.trim();
+            if (!inputVal) return;
+
+            getAudioContext();
+            currentUsername = inputVal;
+            document.getElementById("display-user-name").textContent = currentUsername;
+
+            // 1. SHUFFLE QUESTIONS ORDER
+            const shuffledQuestions = fisherYatesShuffle(masterQuizQuestions);
+
+            // 2. SHUFFLE OPTIONS INSIDE EACH QUESTION
+            activeQuestions = shuffledQuestions.map(q => {
+                const shuffledOptions = fisherYatesShuffle(q.options);
+                return {
+                    ...q,
+                    shuffledOptions: shuffledOptions,
+                    correctShuffledIndex: shuffledOptions.indexOf(q.correctText)
+                };
+            });
+
+            idxTotal.textContent = activeQuestions.length;
+            currentIndex = 0;
+            currentScore = 0;
+            userAnswers = [];
+            isQuizCompleted = false;
+
+            screenWelcome.classList.add("hidden");
+            screenQuiz.classList.remove("hidden");
+            screenResult.classList.add("hidden");
+            screenDashboard.classList.add("hidden");
+
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+
+            renderCurrentQuestion();
+        }
+
+        // RENDER CURRENT QUESTION & SHUFFLED OPTIONS
+        function renderCurrentQuestion() {
+            btnNextQuestion.disabled = true;
+            btnNextQuestion.classList.add("opacity-40", "cursor-not-allowed");
+            document.getElementById("quiz-hint").textContent = "Pilih jawaban terbaik dengan cermat!";
+
+            const qBox = document.getElementById("question-box");
+            qBox.classList.remove("animate-pop", "animate-shake");
+            void qBox.offsetWidth;
+            qBox.classList.add("animate-pop");
+
+            const data = activeQuestions[currentIndex];
+            questionTitle.textContent = `${currentIndex + 1}. ${data.question}`;
+            idxCurrent.textContent = currentIndex + 1;
+
+            const progress = (currentIndex / activeQuestions.length) * 100;
+            quizProgressBar.style.width = `${progress}%`;
+
+            optionsContainer.innerHTML = "";
+            data.shuffledOptions.forEach((optionText, optIndex) => {
+                const btn = document.createElement("button");
+                btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl bg-slate-950/90 border-2 border-purple-500/30 hover:border-cyan-400 hover:bg-slate-900/90 font-medium text-xs sm:text-sm text-gray-200 flex items-center justify-between transition-all duration-200 group shadow-sm";
+                btn.onclick = () => handleSelectOption(optIndex);
+
+                btn.innerHTML = `
+                    <span class="flex items-center gap-3">
+                        <span class="w-7 h-7 rounded-lg bg-purple-500/20 border border-purple-400/50 text-purple-300 font-bold flex items-center justify-center text-xs group-hover:bg-cyan-400 group-hover:text-slate-950 transition-colors font-cyber">
+                            ${String.fromCharCode(65 + optIndex)}
+                        </span>
+                        <span>${optionText}</span>
+                    </span>
+                    <i class="fa-regular fa-circle text-gray-500 text-base option-icon"></i>
+                `;
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        // OPTION SELECTION LOGIC
+        function handleSelectOption(selectedIdx) {
+            const data = activeQuestions[currentIndex];
+            const buttons = optionsContainer.querySelectorAll("button");
+            const isCorrect = selectedIdx === data.correctShuffledIndex;
+
+            userAnswers.push({
+                questionIndex: currentIndex,
+                questionText: data.question,
+                selectedOptionText: data.shuffledOptions[selectedIdx],
+                isCorrect: isCorrect
+            });
+
+            if (isCorrect) {
+                currentScore += 5; // 20 soal x 5 = 100
+                playSynthesizedSound("correct");
+                confetti({
+                    particleCount: 30,
+                    spread: 60,
+                    origin: { y: 0.7 }
+                });
+            } else {
+                playSynthesizedSound("wrong");
+                const qBox = document.getElementById("question-box");
+                qBox.classList.add("animate-shake");
+            }
+
+            buttons.forEach((btn, idx) => {
+                btn.disabled = true;
+                const icon = btn.querySelector(".option-icon");
+
+                if (idx === data.correctShuffledIndex) {
+                    btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl bg-emerald-950/90 border-2 border-emerald-500 font-bold text-xs sm:text-sm text-emerald-200 flex items-center justify-between transition-all shadow-md";
+                    icon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+                } else if (idx === selectedIdx && !isCorrect) {
+                    btn.className = "w-full text-left p-3.5 sm:p-4 rounded-xl bg-rose-950/90 border-2 border-rose-500 font-bold text-xs sm:text-sm text-rose-200 flex items-center justify-between transition-all shadow-md";
+                    icon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+                } else {
+                    btn.classList.add("opacity-40");
+                }
+            });
+
+            document.getElementById("quiz-hint").textContent = data.fact;
+
+            btnNextQuestion.disabled = false;
+            btnNextQuestion.classList.remove("opacity-40", "cursor-not-allowed");
+            btnNextQuestion.classList.add("hover:scale-105", "shadow-lg");
+        }
+
+        // NEXT QUESTION OR FINISH
+        function handleNextQuestion() {
+            currentIndex++;
+            if (currentIndex < activeQuestions.length) {
+                renderCurrentQuestion();
+            } else {
+                renderResultsScreen();
+            }
+        }
+
+        // RENDER RESULT & SAVE TO FIRESTORE
+        function renderResultsScreen() {
+            isQuizCompleted = true; // UNLOCKED MODE
+            quizProgressBar.style.width = "100%";
+
+            lockStatusBar.className = "flex items-center justify-between bg-emerald-950/90 border border-emerald-500/50 rounded-xl px-4 py-2.5 mb-6 shadow-inner";
+            lockIcon.className = "fa-solid fa-lock-open text-emerald-400";
+            lockText.innerHTML = `Status: <span class="text-emerald-400 font-bold">20 Soal Selesai!</span> Kunci Dibuka & Tersimpan!`;
+
+            screenQuiz.classList.add("hidden");
+            screenResult.classList.remove("hidden");
+
+            document.getElementById("res-name").textContent = currentUsername;
+            document.getElementById("res-score-number").textContent = currentScore;
+
+            const resBadgeTitle = document.getElementById("res-badge-title");
+            let badgeText = "Sahabat Sejati Yusril 🥞";
+            if (currentScore >= 90) {
+                badgeText = "PAKAR UTAMA YUSRIL 👑";
+                resBadgeTitle.className = "text-xs sm:text-sm font-black text-yellow-300 mt-3 uppercase font-cyber";
+            } else if (currentScore >= 70) {
+                badgeText = "KERABAT KECE YUSRIL 😎";
+                resBadgeTitle.className = "text-xs sm:text-sm font-black text-cyan-300 mt-3 uppercase font-cyber";
+            } else {
+                badgeText = "PERLU TRAKTIR MARTABAK 🥞";
+                resBadgeTitle.className = "text-xs sm:text-sm font-black text-purple-300 mt-3 uppercase font-cyber";
+            }
+            resBadgeTitle.textContent = badgeText;
+
+            // SAVE RESULT TO FIRESTORE
+            if (window.quizFirebase) {
+                window.quizFirebase.saveResult({
+                    name: currentUsername,
+                    score: currentScore,
+                    badge: badgeText,
+                    totalQuestions: activeQuestions.length,
+                    answersCount: userAnswers.length
+                });
+            }
+
+            // GRAND CELEBRATION CONFETTI
+            confetti({
+                particleCount: 200,
+                spread: 130,
+                origin: { y: 0.6 }
+            });
+        }
+
+        // TOGGLE DASHBOARD / LEADERBOARD VIEW
+        function toggleViewDashboard() {
+            isDashboardView = !isDashboardView;
+            const btnToggleText = document.getElementById("text-toggle-view");
+
+            if (isDashboardView) {
+                screenWelcome.classList.add("hidden");
+                screenQuiz.classList.add("hidden");
+                screenResult.classList.add("hidden");
+                screenDashboard.classList.remove("hidden");
+                btnToggleText.textContent = "Kembali ke Kuis";
+
+                if (window.quizFirebase) {
+                    window.quizFirebase.listenToLeaderboard((data) => {
+                        rawLeaderboardData = data;
+                        renderLeaderboardList(rawLeaderboardData);
+                    });
+                }
+            } else {
+                screenDashboard.classList.add("hidden");
+                btnToggleText.textContent = "📊 Dashboard Yusril";
+
+                if (isQuizCompleted) {
+                    screenResult.classList.remove("hidden");
+                } else if (currentUsername !== "") {
+                    screenQuiz.classList.remove("hidden");
+                } else {
+                    screenWelcome.classList.remove("hidden");
+                }
+            }
+        }
+
+        // RENDER LEADERBOARD LIST
+        function renderLeaderboardList(list) {
+            const container = document.getElementById("leaderboard-list");
+            document.getElementById("dashboard-count").textContent = `${list.length} Pengisi`;
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-gray-400 text-xs font-medium">
+                        <i class="fa-solid fa-ghost text-purple-400 text-2xl mb-2"></i>
+                        <p>Belum ada yang mengisi kuis. Selesaikan kuis untuk masuk daftar!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = "";
+            list.forEach((item, index) => {
+                const dateObj = item.timestamp ? new Date(item.timestamp) : new Date();
+                const formattedTime = dateObj.toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                let medal = `#${index + 1}`;
+                let badgeColor = "border-purple-500/30 bg-slate-950/80";
+                if (index === 0) {
+                    medal = "🥇";
+                    badgeColor = "border-yellow-400/80 bg-yellow-950/20";
+                } else if (index === 1) {
+                    medal = "🥈";
+                    badgeColor = "border-slate-300/80 bg-slate-900/80";
+                } else if (index === 2) {
+                    medal = "🥉";
+                    badgeColor = "border-amber-600/80 bg-amber-950/20";
+                }
+
+                const card = document.createElement("div");
+                card.className = `p-3.5 sm:p-4 rounded-xl border ${badgeColor} transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md`;
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="text-lg font-black w-8 text-center font-cyber">${medal}</span>
+                        <div>
+                            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+                                <span>${escapeHtml(item.name || "Anonim")}</span>
+                                <span class="text-[10px] text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">${item.badge || 'Pengisi Kuis'}</span>
+                            </h4>
+                            <p class="text-[10px] text-gray-400 flex items-center gap-2 mt-0.5">
+                                <span><i class="fa-regular fa-clock"></i> ${formattedTime}</span>
+                                <span>•</span>
+                                <span>20/20 Soal Dijawab</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between sm:justify-end gap-3 border-t sm:border-t-0 border-purple-500/20 pt-2 sm:pt-0">
+                        <span class="text-xs text-gray-400 sm:hidden">Skor Akhir:</span>
+                        <span class="text-xl sm:text-2xl font-black text-yellow-400 font-cyber">
+                            ${item.score || 0} <span class="text-xs text-gray-400 font-normal">pts</span>
+                        </span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // FILTER LEADERBOARD SEARCH
+        function filterLeaderboard() {
+            const query = document.getElementById("input-search-leaderboard").value.toLowerCase();
+            const filtered = rawLeaderboardData.filter(item => 
+                (item.name && item.name.toLowerCase().includes(query)) ||
+                (item.badge && item.badge.toLowerCase().includes(query))
+            );
+            renderLeaderboardList(filtered);
+        }
+
+        // HELPER TO ESCAPE HTML
+        function escapeHtml(text) {
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // FINISH AND QUIT
+        function handleFinishAndQuit() {
+            if (document.exitFullscreen && document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+            alert(`Mantap ${currentUsername}! Hasil kuis 20 soal acakmu sudah tersimpan aman di database! 🥞✨`);
+            location.reload();
+        }
+    </script>
+</body>
+</html>
